@@ -7,7 +7,7 @@ zmp = np.zeros(500)
 
 # plot the zmp trajectory
 plt.figure()
-plt.plot(zmp)
+plt.plot(zmp) 
 plt.show()
 
 # initialize the DCM
