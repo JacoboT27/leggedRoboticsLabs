@@ -16,16 +16,20 @@ class FootstepPlanner:
             ss_duration = default_ss_duration
             ds_duration = default_ds_duration
 
+            ss_steps = int(default_ss_duration / params['world_time_step']) # added
+            ds_steps = int(default_ds_duration / params['world_time_step']) # added
+
             # exception for first step
             if j == 0:
                 ss_duration = 0
                 ds_duration = (default_ss_duration + default_ds_duration) * 2
+                ds_steps = int((default_ss_duration + default_ds_duration) * 2 / params['world_time_step']) # added
 
             # exception for last step
             # to be added
 
             # move virtual unicycle
-            for i in range(ss_duration + ds_duration):
+            for i in range(ss_steps + ds_steps): # changed from _duration to _steps
                 if j > 1:
                     unicycle_theta += vref[j][2] * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
