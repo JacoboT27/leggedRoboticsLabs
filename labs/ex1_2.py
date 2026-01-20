@@ -25,7 +25,7 @@ for i in range(0, len(zmp) - 1):
 # plot the DCM trajectory
 plt.figure()
 plt.plot(dcm)
-plt.show()
+plt.show() 
 
 # replan ZMP every 0.5 s to reset offset
 dcm_replanned = np.array([zmp[0] + offset] * len(zmp))
