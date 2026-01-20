@@ -86,7 +86,7 @@ class LIPCOMPlanner:
             dt = self.dt
             v_next = v + a*dt
             # 3. Integrate to find next position 'x_next' using Forward Euler
-            x_next = x + v*dt
+            x_next = x + v_next*dt
                         
             # Euler Integration
             com_vel[:, i + 1] = v_next
