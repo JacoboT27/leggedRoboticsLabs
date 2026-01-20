@@ -16,7 +16,7 @@ class LIPCOMPlanner:
         # ---------------------------------------------------------
         # TODO: Calculate the natural frequency (omega) of the LIP model
         # Hint: omega = sqrt(g / z_com)
-        self.omega = 0.0 
+        self.omega = np.sqrt(self.g/self.z_com)
         # ---------------------------------------------------------
 
     def interpolate_zmp_trajectory(self, footstep_plan, total_time):
@@ -79,17 +79,18 @@ class LIPCOMPlanner:
             x_zmp = zmp_traj[:, i]
             
             # ---------------------------------------------------------
-            # TODO: STUDENTS IMPLEMENT DYNAMICS HERE
+            # TODO: IMPLEMENT DYNAMICS HERE
             # 1. Calculate acceleration 'a' based on LIP dynamics
-            #    a = omega^2 * (x - x_zmp)
+            a = omega_sq * (x - x_zmp)
             # 2. Integrate to find next velocity 'v_next' using Forward Euler
+            dt = self.dt
+            v_next = v + a*dt
             # 3. Integrate to find next position 'x_next' using Forward Euler
-            
-            a = np.zeros(2) # Replace with LIP equation
-            
+            x_next = x + v*dt
+                        
             # Euler Integration
-            com_vel[:, i + 1] = v # + ...
-            com_traj[:, i + 1] = x # + ...
+            com_vel[:, i + 1] = v_next
+            com_traj[:, i + 1] = x_next
             # ---------------------------------------------------------
             
             com_acc[:, i] = a
