@@ -59,14 +59,12 @@ class LIPCOMPlanner:
         n_timesteps = zmp_traj.shape[1]
         com_traj = np.zeros((2, n_timesteps))
         com_vel = np.zeros((2, n_timesteps))
+        dcm_traj = np.zeros((2, n_timesteps))
         
         com_traj[:, 0] = x0_com
         com_vel[:, 0] = v0_com
 
-        c = np.cosh(self.omega * self.dt)
-        s = np.sinh(self.omega * self.dt)
-        
-        # MPC Gain (K > 1.0 for stability)
+        # MPC Gain
         k_gain = 10.0 
 
         for i in range(n_timesteps - 1):
@@ -74,23 +72,24 @@ class LIPCOMPlanner:
             v = com_vel[:, i]
             p_ref = zmp_traj[:, i]
             
-            # 1. Current DCM state
+            # 1. Current DCM state remains the same
             xi_actual = x + v / self.omega
-            
-            # 2. MPC Law: Adjust ZMP to track DCM reference
-            # p_optimal = xi_actual - (1 + k_gain/omega) * (xi_actual - xi_ref)
-            # A simpler version for intuitive tuning:
+            dcm_traj[:, i] = xi_actual
+            # 2. MPC Law remains the same
             p_mpc = p_ref + k_gain * (xi_actual - dcm_ref[:, i])
             
-            # 3. Foot Constraint (Saturation)
-            # Ensure ZMP stays within +/- 5cm of the planned foot center
-            #p_final = np.clip(p_mpc, p_ref - 0.05, p_ref + 0.05)
+            # 3. Use the MPC-adjusted ZMP
             p_final = p_mpc
-            # 4. Analytical Update using the MPC-adjusted ZMP
-            com_traj[:, i + 1] = (x - p_final) * c + (v / self.omega) * s + p_final
-            com_vel[:, i + 1] = (x - p_final) * self.omega * s + v * c
             
-        return com_traj, com_vel, None
+            # 4. FORWARD EULER INTEGRATION
+            # a = omega^2 * (x - p)
+            acc = (self.omega**2) * (x - p_final)
+            
+            # Update state: next = current + derivative * dt
+            com_vel[:, i + 1] = v + acc * self.dt
+            com_traj[:, i + 1] = x + v * self.dt
+            
+        return com_traj, com_vel, None, dcm_traj
     
 
     def plan_com_trajectory(self, footstep_plan, initial_com_pos):
@@ -105,11 +104,11 @@ class LIPCOMPlanner:
         dcm_ref = self.generate_dcm_reference(footstep_plan, t_array)
         
         # 4. Solve dynamics (Pass dcm_ref to use in the MPC loop)
-        com_pos, com_vel, com_acc = self.solve_lip_dynamics(
+        com_pos, com_vel, com_acc, dcm_traj = self.solve_lip_dynamics(
             zmp_traj, t_array, initial_com_pos, initial_com_vel, dcm_ref
         )
         
-        return {'t': t_array, 'com_pos': com_pos, 'zmp': zmp_traj, 'dcm_ref': dcm_ref}
+        return {'t': t_array, 'com_pos': com_pos, 'zmp': zmp_traj, 'dcm_ref': dcm_ref, 'dcm_traj': dcm_traj}
     
     def generate_dcm_reference(self, footstep_plan, t_array):
         dcm_ref = np.zeros((2, len(t_array)))
@@ -242,6 +241,13 @@ if __name__ == '__main__':
     
     # 3. Plot COM
     ax.plot(traj['com_pos'][0, :], traj['com_pos'][1, :], 'b-', label='CoM Trajectory', linewidth=2)
+
+    # 4. Plot DCM Reference
+    #ax.plot(traj['dcm_ref'][0, :], traj['dcm_ref'][1, :], 'm:', label='DCM Ref', linewidth=2)
+
+    # 5. Plot Actual DCM 
+    #ax.plot(traj['dcm_traj'][0, :], traj['dcm_traj'][1, :], 'k--', label='DCM Actual', alpha=0.6)
+
     
     # Fix legend duplicates
     handles, labels = ax.get_legend_handles_labels()
