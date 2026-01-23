@@ -65,7 +65,7 @@ class LIPCOMPlanner:
         com_vel[:, 0] = v0_com
 
         # MPC Gain
-        k_gain = 10.0 
+        k_gain = 15.0 
 
         for i in range(n_timesteps - 1):
             x = com_traj[:, i]
@@ -136,27 +136,6 @@ class LIPCOMPlanner:
             t_now += T
             
         return dcm_ref
-    
-    def plan_with_dcm(self, footstep_plan):
-        # 1. Reverse pass to find DCM at start of each step
-        # Start from the last footstep position
-        xi_end = footstep_plan[-1]['pos'][:2]
-        dcm_setpoints = [xi_end]
-
-        for step in reversed(footstep_plan[:-1]):
-            p = step['pos'][:2]
-            T = step['ss_duration'] + step['ds_duration']
-            # Backward integration: find xi at start of step
-            xi_start = p + (xi_end - p) * np.exp(-self.omega * T)
-            dcm_setpoints.insert(0, xi_start)
-            xi_end = xi_start
-
-        # 2. Compute Initial CoM Velocity from the first DCM point
-        # xi = x + v/w  =>  v = w(xi - x)
-        x0 = footstep_plan[0]['pos'][:2]
-        v0 = self.omega * (dcm_setpoints[0] - x0)
-        
-        return v0
     
     def compute_initial_velocity(self, footstep_plan, initial_com_pos):
         """
