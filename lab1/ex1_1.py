@@ -101,7 +101,9 @@ class LIPCOMPlanner:
 
         # Compute final acceleration for completeness
         com_acc[:, -1] = omega_sq * (com_traj[:, -1] - zmp_traj[:, -1])
-        
+        print(f'Initial CoM {com_traj[:,0]}')
+        print(f'Initial ZMP {zmp_traj[:,0]}')
+
         return com_traj, com_vel, com_acc
 
     def plan_com_trajectory(self, footstep_plan, initial_com_pos, initial_com_vel=None):

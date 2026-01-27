@@ -6,13 +6,17 @@ times = [0, 1, 2, 3, 4, 5]
 zmp = np.zeros(500)
 
 # plot the zmp trajectory
-plt.figure(figsize=(16,7))
+plt.figure(figsize=(16,5))
+"""
 plt.subplot(1,3,1)
 plt.title("ZMP Trajectory")
+plt.xlabel("Timestep")
+plt.ylabel("Position")
 plt.plot(zmp) 
+"""
 
 # initialize the DCM
-offset = 0.01
+offset = -0.01
 dcm = np.array([zmp[0] + offset] * len(zmp))
 
 # integrate the DCM dynamics
@@ -24,8 +28,10 @@ for i in range(0, len(zmp) - 1):
     dcm[i + 1] = dcm_next
 
 # plot the DCM trajectory
-plt.subplot(1,3,2)
+plt.subplot(1,2,1)
 plt.title("DCM Trajectory")
+plt.xlabel("Timestep")
+plt.ylabel("Position")
 plt.plot(dcm)
 
 # replan ZMP every 0.5 s to reset offset
@@ -42,9 +48,11 @@ for i in range(len(zmp) - 1):
     dcm_replanned[i + 1] = dcm_replanned[i] + dcm_dot * dt
 
 # plot the replanned DCM trajectory
-plt.subplot(1,3,3)
+plt.subplot(1,2,2)
 plt.plot(dcm_replanned, label='DCM')
 plt.plot(zmp_replanned, label='ZMP')
+plt.xlabel("Timestep")
+plt.ylabel("Position")
 plt.legend()
 plt.title('DCM with ZMP replanning every 0.5s')
 plt.show()
