@@ -5,6 +5,8 @@ from utils import *
 import os
 import inverse_dynamics as id
 from logger import Logger
+import csv
+
 
 divergence_detected = False
 
@@ -37,6 +39,7 @@ def set_body_friction(body_node, friction_coeff):
 
 class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
     def __init__(self, world, hrp4):
+        self.com_log = []
         super(Hrp4Controller, self).__init__(world)
         self.world = world
         self.hrp4 = hrp4
@@ -199,8 +202,11 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             self.hrp4.setCommand(i + 6, commands[i])
 
         # log and plot
-        self.logger.log_data(self.current, self.desired)
-        # self.logger.update_plot(self.time)
+        #self.logger.log_data(self.desired, self.current)
+        #self.logger.update_plot(self.time)
+        t = self.world.getTime()  # or self.timestep * self.counter
+        com = self.current['com']['pos']  # np.array([x,y,z])
+        self.com_log.append([t, com[0], com[1], com[2]])
 
         self.time += 1
 
@@ -324,3 +330,8 @@ if __name__ == "__main__":
                                  [1.,  0., 0.5],
                                  [0.,  0., 1. ])
     viewer.run()
+
+    with open("com_log.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["t", "com_x", "com_y", "com_z"])
+        w.writerows(node.com_log)
