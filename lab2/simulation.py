@@ -183,7 +183,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         # If the physics is becoming unstable, torques might spike to 10,000+ Nm.
         if not divergence_detected:
             is_nan_inf = np.isnan(commands).any() or np.isinf(commands).any()
-            is_explosion = np.max(np.abs(commands)) > 200.0 # Threshold: 500 Nm (way above HRP4 limits)
+            is_explosion = np.max(np.abs(commands)) > 200.0 # Threshold: 200 Nm (way above HRP4 limits)
         else:
             is_nan_inf = True
             is_explosion = True
