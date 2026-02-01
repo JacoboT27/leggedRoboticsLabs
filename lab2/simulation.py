@@ -40,6 +40,8 @@ def set_body_friction(body_node, friction_coeff):
 class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
     def __init__(self, world, hrp4):
         self.com_log = []
+        self.contact_log = []  # [t, Fz, Ft]
+
         super(Hrp4Controller, self).__init__(world)
         self.world = world
         self.hrp4 = hrp4
@@ -174,9 +176,23 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
 
         # get torque commands using inverse dynamics
         if not divergence_detected:
-            commands = self.id.get_joint_torques(self.desired, self.current, contact)
+            commands, f_c = self.id.get_joint_torques(self.desired, self.current, contact)
         else:
             commands = np.zeros(self.params['dof'] - 6)
+
+        # --------------------------------------------------
+        # Extract stance foot contact forces from QP solution
+        # f_c ordering: [left_foot(6), right_foot(6)]
+        f_L = f_c[0:6]                  # left foot wrench
+        Fx, Fy, Fz = f_L[3], f_L[4], f_L[5]
+
+        Ft = np.sqrt(Fx**2 + Fy**2)     # tangential force magnitude
+        Fn = Fz                         # normal force
+        t = self.world.getTime()
+
+        self.contact_log.append([t, Fn, Ft])
+        # --------------------------------------------------
+
 
         # --- SAFETY INTERVENTION: CHECK CONTROL OUTPUT ---
         # If the QP solver exploded, 'commands' will contain NaN or Inf.
@@ -335,3 +351,8 @@ if __name__ == "__main__":
         w = csv.writer(f)
         w.writerow(["t", "com_x", "com_y", "com_z"])
         w.writerows(node.com_log)
+
+    with open("contact_forces.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["t", "F_normal", "F_tangent"])
+        w.writerows(node.contact_log)

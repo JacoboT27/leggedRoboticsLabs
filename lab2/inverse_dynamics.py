@@ -21,6 +21,10 @@ class InverseDynamics:
         self.n_eq_constraints = self.dofs
         self.n_ineq_constraints = 8 * self.num_contacts
 
+        self.q_ddot_indices = np.arange(self.dofs)
+        self.tau_indices    = np.arange(self.dofs, 2 * self.dofs)
+        self.f_c_indices    = np.arange(2 * self.dofs, self.n_vars)
+
         # initialize QP solver
         self.qp_solver = QPSolver(self.n_vars, self.n_eq_constraints, self.n_ineq_constraints)
 
@@ -87,9 +91,10 @@ class InverseDynamics:
         # cost function
         H = np.zeros((self.n_vars, self.n_vars))
         F = np.zeros(self.n_vars)
-        q_ddot_indices = np.arange(self.dofs)
-        tau_indices = np.arange(self.dofs, 2 * self.dofs)
-        f_c_indices = np.arange(2 * self.dofs, self.n_vars)
+        q_ddot_indices = self.q_ddot_indices
+        tau_indices    = self.tau_indices
+        f_c_indices    = self.f_c_indices
+
 
         for task in tasks:
             H_task =   weights[task] * J[task].T @ J[task]
@@ -145,4 +150,4 @@ class InverseDynamics:
         tau = solution[tau_indices]
         forces_contact = solution[f_c_indices]
         
-        return tau[6:]
+        return tau[6:], forces_contact
