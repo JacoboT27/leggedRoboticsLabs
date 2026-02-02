@@ -149,6 +149,23 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         self.desired[swing]['vel'] = self.current[swing]['vel'].copy()
         self.desired[swing]['acc'] = np.zeros(6)
 
+        # -----------------------------------------------       added
+        # --- Swing foot vertical motion (world z) ---
+        t = self.world.getTime()
+        A = 0.15                   # 5 cm amplitude
+        omega = 2.0 * np.pi * 0.3   # 0.5 Hz
+
+        z0 = self.initial[swing]['pos'][5]
+        z_des  = z0 + A * np.sin(omega * t)
+        vz_des = A * omega * np.cos(omega * t)
+        az_des = -A * omega**2 * np.sin(omega * t)
+
+        # pose: [rotvec(3), x, y, z]
+        self.desired[swing]['pos'][5] = z_des
+        self.desired[swing]['vel'][5] = vz_des
+        self.desired[swing]['acc'][5] = az_des
+        # -----------------------------------------------
+
         # keep torso/base orientations close to initial
         for link in ['torso', 'base']:
             self.desired[link]['pos'] = self.initial[link]['pos'].copy()
