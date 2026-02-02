@@ -51,7 +51,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.75,
             'foot_size': 0.1,
             'world_time_step': world.getTimeStep(),
-            'µ': 0.005,
+            'µ': 0.5,
             'dof': self.hrp4.getNumDofs(),
         }
         self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])

@@ -6,7 +6,7 @@ MU = 0.005  # must match QP friction
 
 Ft, Fz, Fx1, Fy1 = [], [], [], []
 
-with open("contact_wrench.csv", "r") as f:
+with open("contact_wrench_low.csv", "r") as f:
     r = csv.DictReader(f)
     for row in r:
         Fx = float(row["Fx"])
@@ -23,8 +23,8 @@ with open("contact_wrench.csv", "r") as f:
 
 Ft = np.array(Ft)
 Fz = np.array(Fz)
-Fx1 = np.array(Fx1)
-Fy1 = np.array(Fy1)
+Fx = np.array(Fx1)
+Fy = np.array(Fy1)
 
 # Keep valid contact samples
 mask = np.isfinite(Fz) & np.isfinite(Ft) & (Fz > 1e-6)
@@ -59,8 +59,8 @@ print("-------- Test --------")
 # Safety mask: valid contact only
 mask = np.isfinite(Fx1) & np.isfinite(Fy1) & np.isfinite(Fz) & (Fz > 1e-6)
 
-Fx_v = Fx1[mask]
-Fy_v = Fy1[mask]
+Fx_v = Fx[mask]
+Fy_v = Fy[mask]
 Fz_v = Fz[mask]
 
 # L-infinity tangential force (what the QP actually constrains)
@@ -76,10 +76,33 @@ print("Number of violations =", np.sum(u > 1.0 + 1e-6))
 
 
 
+Ft_def, Fz_def = [], []
+
+with open("contact_wrench_default.csv", "r") as f:
+    r = csv.DictReader(f)
+    for row in r:
+        Fx = float(row["Fx"])
+        Fy = float(row["Fy"])
+        Fz_i = float(row["Fz"])
+
+        Ft_i = np.sqrt(Fx**2 + Fy**2)
+
+        Ft_def.append(Ft_i)
+        Fz_def.append(Fz_i)
+
+
+Ft_def = np.array(Ft_def)
+Fz_def = np.array(Fz_def)
+
+
+
+
+
 
 # Plot
 plt.figure(figsize=(7, 5))
-plt.scatter(Fz, Ft, s=10, label="Solver samples")         # s controls marker size
+plt.scatter(Fz, Ft, s=10, label="µ = 0.005")         # s controls marker size
+plt.scatter(Fz_def, Ft_def, s=10, label="Def µ=0.5", color = 'red')         # s controls marker size
 plt.plot(fz_line, ft_line, linewidth=2, label=rf"$F_t=\mu F_z$ (μ={MU})")
 
 plt.ylabel(r"Tangential force magnitude $F_t=\sqrt{F_x^2+F_y^2}$ [N]")
