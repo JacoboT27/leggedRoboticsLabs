@@ -49,7 +49,7 @@ class InverseDynamics:
         tasks = ['lfoot', 'com', 'torso', 'base', 'joints']
 
         # weights and gains
-        weights   = {'lfoot':  1., 'com':  1e-3, 'torso': 1., 'base': 1., 'joints': 1.e-2}
+        weights   = {'lfoot':  1., 'com':  1., 'torso': 1., 'base': 1., 'joints': 1.e-2}
         pos_gains = {'lfoot': 10., 'com':  5., 'torso': 1., 'base': 1., 'joints': 10.  }
         vel_gains = {'lfoot': 10., 'com': 10., 'torso': 2., 'base': 2., 'joints': 1.   }
 

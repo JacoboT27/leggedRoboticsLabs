@@ -51,7 +51,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.75,
             'foot_size': 0.1,
             'world_time_step': world.getTimeStep(),
-            'µ': 0.5,
+            'µ': 0.005,
             'dof': self.hrp4.getNumDofs(),
         }
         self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
@@ -180,18 +180,15 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         else:
             commands = np.zeros(self.params['dof'] - 6)
 
-        # --------------------------------------------------
-        # Extract stance foot contact forces from QP solution
+        # ---- Log solver contact wrench (stance foot) ----
         # f_c ordering: [left_foot(6), right_foot(6)]
-        f_L = f_c[0:6]                  # left foot wrench
-        Fx, Fy, Fz = f_L[3], f_L[4], f_L[5]
+        f_L = f_c[0:6]  # left foot wrench: [Mx, My, Mz, Fx, Fy, Fz]
+        Mx, My, Mz, Fx, Fy, Fz = f_L
 
-        Ft = np.sqrt(Fx**2 + Fy**2)     # tangential force magnitude
-        Fn = Fz                         # normal force
         t = self.world.getTime()
+        self.contact_log.append([t, Mx, My, Mz, Fx, Fy, Fz])
+        # -----------------------------------------------
 
-        self.contact_log.append([t, Fn, Ft])
-        # --------------------------------------------------
 
 
         # --- SAFETY INTERVENTION: CHECK CONTROL OUTPUT ---
@@ -306,13 +303,13 @@ if __name__ == "__main__":
 
     # --- PHYSICS FRICTION ---
     # Set friction of the ground (e.g., 0.1 for ice, 1.0 for rubber)
-    ground_mu = 1.0 
+    ground_mu = 1
     set_body_friction(ground.getBodyNode("ground_link"), ground_mu)
     #ground.getBodyNode("ground_link").setFrictionCoeff(ground_mu)
 
     # Ideally, set the feet as well, though DART usually takes the min() of the two.
     # We set them high so the ground dominates the interaction.
-    foot_mu = 1.0 
+    foot_mu = 1
     #hrp4.getBodyNode("l_sole").setFrictionCoeff(foot_mu)
     #hrp4.getBodyNode("r_sole").setFrictionCoeff(foot_mu)
     set_body_friction(hrp4.getBodyNode("l_sole"), foot_mu)
@@ -352,7 +349,8 @@ if __name__ == "__main__":
         w.writerow(["t", "com_x", "com_y", "com_z"])
         w.writerows(node.com_log)
 
-    with open("contact_forces.csv", "w", newline="") as f:
+    with open("contact_wrench.csv", "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["t", "F_normal", "F_tangent"])
+        w.writerow(["t", "Mx", "My", "Mz", "Fx", "Fy", "Fz"])
         w.writerows(node.contact_log)
+
