@@ -46,14 +46,13 @@ class InverseDynamics:
         base  = self.robot.getBodyNode('body')
 
         # tasks: keep only what we need for single-support balancing.
-        tasks = ['lfoot', 'com', 'torso', 'base', 'joints', 'swing_z']
+        tasks = ['lfoot', 'com', 'torso', 'base', 'joints']
 
         # weights and gains
-        weights   = {'lfoot':  1., 'com':  1., 'torso': 1., 'base': 1., 'joints': 1.e-2, 'swing_z': 0.5}
-        pos_gains = {'lfoot': 10., 'com':  5., 'torso': 1., 'base': 1., 'joints': 10., 'swing_z': 10.}
-        vel_gains = {'lfoot': 10., 'com': 10., 'torso': 2., 'base': 2., 'joints': 1. , 'swing_z': 10}
+        weights   = {'lfoot':  1., 'com':  1., 'torso': 1., 'base': 1., 'joints': 1.e-2}
+        pos_gains = {'lfoot': 10., 'com':  5., 'torso': 1., 'base': 1., 'joints': 10.}
+        vel_gains = {'lfoot': 10., 'com': 10., 'torso': 2., 'base': 2., 'joints': 1.}
 
-       
 
         # jacobians
         J = {'lfoot' : self.robot.getJacobian(lsole,        inCoordinatesOf=dart.dynamics.Frame.World()),
@@ -68,13 +67,6 @@ class InverseDynamics:
                 'torso' : self.robot.getAngularJacobianDeriv(torso, inCoordinatesOf=dart.dynamics.Frame.World()),
                 'base'  : self.robot.getAngularJacobianDeriv(base,  inCoordinatesOf=dart.dynamics.Frame.World()),
                 'joints': np.zeros((self.dofs, self.dofs))}
-        
-        J_r = self.robot.getJacobian(rsole, inCoordinatesOf=dart.dynamics.Frame.World())
-        Jdot_r = self.robot.getJacobianClassicDeriv(rsole, inCoordinatesOf=dart.dynamics.Frame.World())
-
-        J['swing_z'] = J_r[5:6, :]          # shape (1, dofs)
-        Jdot['swing_z'] = Jdot_r[5:6, :]    # shape (1, dofs)
-
 
         # feedforward terms
         ff = {'lfoot' : desired['lfoot']['acc'],
@@ -97,11 +89,6 @@ class InverseDynamics:
                      'base'  : desired['base']['vel']  - current['base']['vel'],
                      'joints': desired['joint']['vel'] - current['joint']['vel']}
         
-        # added for task 4
-        ff['swing_z'] = np.array([desired['rfoot']['acc'][5]])
-        pos_error['swing_z'] = np.array([desired['rfoot']['pos'][5] - current['rfoot']['pos'][5]])
-        vel_error['swing_z'] = np.array([desired['rfoot']['vel'][5] - current['rfoot']['vel'][5]])
-
 
         # cost function
         H = np.zeros((self.n_vars, self.n_vars))

@@ -6,7 +6,7 @@ MU = 0.005  # must match QP friction
 
 Ft, Fz, Fx1, Fy1 = [], [], [], []
 
-with open("contact_wrench_low.csv", "r") as f:
+with open("contact_wrench_low_2.csv", "r") as f:
     r = csv.DictReader(f)
     for row in r:
         Fx = float(row["Fx"])
@@ -78,7 +78,7 @@ print("Number of violations =", np.sum(u > 1.0 + 1e-6))
 
 Ft_def, Fz_def = [], []
 
-with open("contact_wrench_default.csv", "r") as f:
+with open("contact_wrench_2_def.csv", "r") as f:
     r = csv.DictReader(f)
     for row in r:
         Fx = float(row["Fx"])
