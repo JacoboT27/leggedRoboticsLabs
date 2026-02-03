@@ -211,7 +211,7 @@ if __name__ == '__main__':
         
         rect = patches.Rectangle(
             (x - w/2, y - h/2), w, h,
-            linewidth=1, edgecolor='r', facecolor='none', label='Footstep'
+            linewidth=2, edgecolor='r', facecolor='none', label='Footstep'
         )
         ax.add_patch(rect)
         
@@ -231,11 +231,12 @@ if __name__ == '__main__':
     # Fix legend duplicates
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys())
+    ax.legend(by_label.values(), by_label.keys(), fontsize=15)
     
-    ax.set_title("LIP Model: Forward Integration Results")
-    ax.set_xlabel("X (m)")
-    ax.set_ylabel("Y (m)")
+    ax.set_title("LIP Model: Forward Integration Results", fontsize=22)
+    ax.set_xlabel("X (m)", fontsize=15)
+    ax.set_ylabel("Y (m)", fontsize=15)
     ax.axis('equal')
     ax.grid(True)
+    ax.tick_params(axis='both', which='major', labelsize=14)
     plt.show()

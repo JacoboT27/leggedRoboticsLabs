@@ -6,7 +6,7 @@ times = [0, 1, 2, 3, 4, 5]
 zmp = np.zeros(500)
 
 # plot the zmp trajectory
-plt.figure(figsize=(16,5))
+plt.figure(figsize=(14,8))
 """
 plt.subplot(1,3,1)
 plt.title("ZMP Trajectory")
@@ -29,9 +29,11 @@ for i in range(0, len(zmp) - 1):
 
 # plot the DCM trajectory
 plt.subplot(1,2,1)
-plt.title("DCM Trajectory")
-plt.xlabel("Timestep")
-plt.ylabel("Position")
+plt.title("DCM Trajectory", fontsize=20)
+plt.xlabel("Timestep", fontsize=16)
+plt.ylabel("Position", fontsize=16)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
 plt.plot(dcm)
 
 # replan ZMP every 0.5 s to reset offset
@@ -51,8 +53,11 @@ for i in range(len(zmp) - 1):
 plt.subplot(1,2,2)
 plt.plot(dcm_replanned, label='DCM')
 plt.plot(zmp_replanned, label='ZMP')
-plt.xlabel("Timestep")
-plt.ylabel("Position")
+plt.xlabel("Timestep", fontsize=16)
+plt.ylabel("Position", fontsize=16)
 plt.legend()
-plt.title('DCM with ZMP replanning every 0.5s')
+plt.legend(fontsize=15)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.title('DCM with ZMP replanning every 0.5s', fontsize=20)
 plt.show()
