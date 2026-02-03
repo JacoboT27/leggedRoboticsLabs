@@ -51,7 +51,7 @@ class InverseDynamics:
         # weights and gains
         weights   = {'lfoot':  1., 'com':  1., 'torso': 1., 'base': 1., 'joints': 1.e-2, 'swing_z': 2}
         pos_gains = {'lfoot': 10., 'com':  5., 'torso': 1., 'base': 1., 'joints': 10., 'swing_z': 10.}
-        vel_gains = {'lfoot': 10., 'com': 10., 'torso': 2., 'base': 2., 'joints': 1. , 'swing_z': 10}
+        vel_gains = {'lfoot': 10., 'com': 10., 'torso': 2., 'base': 2., 'joints': 1. , 'swing_z': 5}
 
        
 
