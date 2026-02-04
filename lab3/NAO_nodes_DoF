@@ -1,0 +1,132 @@
+=== DOFs in loaded robot ===
+0 rootJoint_rot_x
+1 rootJoint_rot_y
+2 rootJoint_rot_z
+3 rootJoint_pos_x
+4 rootJoint_pos_y
+5 rootJoint_pos_z
+6 HeadYaw
+7 HeadPitch
+8 LHipYawPitch
+9 LHipRoll
+10 LHipPitch
+11 LKneePitch
+12 LAnklePitch
+13 LAnkleRoll
+14 LShoulderPitch
+15 LShoulderRoll
+16 LElbowYaw
+17 LElbowRoll
+18 LWristYaw
+19 LFinger11
+20 LFinger12
+21 LFinger13
+22 LFinger21
+23 LFinger22
+24 LFinger23
+25 LHand
+26 LThumb1
+27 LThumb2
+28 RHipYawPitch
+29 RHipRoll
+30 RHipPitch
+31 RKneePitch
+32 RAnklePitch
+33 RAnkleRoll
+34 RShoulderPitch
+35 RShoulderRoll
+36 RElbowYaw
+37 RElbowRoll
+38 RWristYaw
+39 RFinger11
+40 RFinger12
+41 RFinger13
+42 RFinger21
+43 RFinger22
+44 RFinger23
+45 RHand
+46 RThumb1
+47 RThumb2
+============================
+
+=== BodyNodes ===
+base_link
+torso
+ImuTorsoAccelerometer_frame
+ChestButton_frame
+ImuTorsoGyrometer_frame
+Neck
+Head
+CameraBottom_frame
+CameraBottom_optical_frame
+CameraTop_frame
+CameraTop_optical_frame
+HeadTouchFront_frame
+HeadTouchMiddle_frame
+HeadTouchRear_frame
+LInfraRed_frame
+RInfraRed_frame
+gaze
+LPelvis
+LHip
+LThigh
+LTibia
+LAnklePitch
+l_ankle
+LFootBumperLeft_frame
+LFootBumperRight_frame
+LFsrFL_frame
+LFsrFR_frame
+LFsrRL_frame
+LFsrRR_frame
+l_sole
+LShoulder
+LBicep
+LElbow
+LForeArm
+l_wrist
+LFinger11_link
+LFinger12_link
+LFinger13_link
+LFinger21_link
+LFinger22_link
+LFinger23_link
+l_gripper
+LHandTouchBack_frame
+LHandTouchLeft_frame
+LHandTouchRight_frame
+LThumb1_link
+LThumb2_link
+RPelvis
+RHip
+RThigh
+RTibia
+RAnklePitch
+r_ankle
+RFootBumperLeft_frame
+RFootBumperRight_frame
+RFsrFL_frame
+RFsrFR_frame
+RFsrRL_frame
+RFsrRR_frame
+r_sole
+RShoulder
+RBicep
+RElbow
+RForeArm
+r_wrist
+RFinger11_link
+RFinger12_link
+RFinger13_link
+RFinger21_link
+RFinger22_link
+RFinger23_link
+r_gripper
+RHandTouchBack_frame
+RHandTouchLeft_frame
+RHandTouchRight_frame
+RThumb1_link
+RThumb2_link
+LSonar_frame
+RSonar_frame
+===============
