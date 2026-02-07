@@ -3,7 +3,7 @@ import numpy as np
 from utils import *
 
 class InverseDynamics:
-    def __init__(self, robot, redundant_dofs, foot_size=0.09, µ=0.5):       # changed from 0.1 to 0.09
+    def __init__(self, robot, redundant_dofs, foot_size=0.1, µ=0.5):
         self.robot = robot
         self.dofs = self.robot.getNumDofs()
         self.d = foot_size / 2.

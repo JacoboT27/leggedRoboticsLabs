@@ -18,8 +18,8 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         self.time = 0
         self.params = {
             'g': 9.81,
-            'h': 0.25,                      # changed from 0.72 to 0.25
-            'foot_size': 0.09,              # changed from 0.1 to 0.09
+            'h': 0.72,
+            'foot_size': 0.1,
             'step_height': 0.02,
             'ss_duration': 70,
             'ds_duration': 30,
@@ -35,7 +35,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         self.lsole = hrp4.getBodyNode('l_sole')
         self.rsole = hrp4.getBodyNode('r_sole')
         self.torso = hrp4.getBodyNode('torso')
-        self.base  = hrp4.getBodyNode('base_link')                  # changed from body to base_link
+        self.base  = hrp4.getBodyNode('body')
 
         for i in range(hrp4.getNumJoints()):
             joint = hrp4.getJoint(i)
@@ -44,20 +44,14 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             # set floating base to passive, everything else to torque
             if   dim == 6: joint.setActuatorType(dart.dynamics.ActuatorType.PASSIVE)
             elif dim == 1: joint.setActuatorType(dart.dynamics.ActuatorType.FORCE)
-        """
+
         # set initial configuration
         initial_configuration = {'CHEST_P': 0., 'CHEST_Y': 0., 'NECK_P': 0., 'NECK_Y': 0., \
                                  'R_HIP_Y': 0., 'R_HIP_R': -3., 'R_HIP_P': -25., 'R_KNEE_P': 50., 'R_ANKLE_P': -25., 'R_ANKLE_R':  3., \
                                  'L_HIP_Y': 0., 'L_HIP_R':  3., 'L_HIP_P': -25., 'L_KNEE_P': 50., 'L_ANKLE_P': -25., 'L_ANKLE_R': -3., \
                                  'R_SHOULDER_P': 4., 'R_SHOULDER_R': -8., 'R_SHOULDER_Y': 0., 'R_ELBOW_P': -25., \
                                  'L_SHOULDER_P': 4., 'L_SHOULDER_R':  8., 'L_SHOULDER_Y': 0., 'L_ELBOW_P': -25.}
-        """
-        # set initial configuration                                                             # changed initial configuration joint values            
-        initial_configuration = {"HeadYaw": 0.0, "HeadPitch": 0.0, "LHipYawPitch": 0.0, "LHipRoll": 0.0, "LHipPitch": -25.0,
-                                "LKneePitch": 50.0, "LAnklePitch": -25.0, "LAnkleRoll": 0.0, "RHipYawPitch": 0.0, "RHipRoll": 0.0, "RHipPitch": -25.0,
-                                "RKneePitch": 50.0, "RAnklePitch": -25.0, "RAnkleRoll": 0.0, "LShoulderPitch": 4.0, "LShoulderRoll": 8.0, "LElbowYaw": 0.0, "LElbowRoll": -25.0,
-                                "RShoulderPitch": 4.0, "RShoulderRoll": -8.0, "RElbowYaw": 0.0, "RElbowRoll": -25.0}
-        
+
         for joint_name, value in initial_configuration.items():
             self.hrp4.setPosition(self.hrp4.getDof(joint_name).getIndexInSkeleton(), value * np.pi / 180.)
 
@@ -74,17 +68,10 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         self.desired = copy.deepcopy(self.initial)
 
         # selection matrix for redundant dofs
-        """
         redundant_dofs = [ \
             "NECK_Y", "NECK_P", \
             "R_SHOULDER_P", "R_SHOULDER_R", "R_SHOULDER_Y", "R_ELBOW_P", \
             "L_SHOULDER_P", "L_SHOULDER_R", "L_SHOULDER_Y", "L_ELBOW_P"]
-        """
-        redundant_dofs = [                                                                  # changed redundant dofs names
-            "LFinger11","LFinger12","LFinger13","LFinger21","LFinger22","LFinger23",
-            "LHand","LThumb1","LThumb2",
-            "RFinger11","RFinger12","RFinger13","RFinger21","RFinger22","RFinger23",
-            "RHand","RThumb1","RThumb2"]
         
         # initialize inverse dynamics
         self.id = id.InverseDynamics(self.hrp4, redundant_dofs)
@@ -196,7 +183,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         # com and torso pose (orientation and position)
         com_position = self.hrp4.getCOM()
         torso_orientation = get_rotvec(self.hrp4.getBodyNode('torso').getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())
-        base_orientation  = get_rotvec(self.hrp4.getBodyNode('base_link').getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())  # changed from body to base_link
+        base_orientation  = get_rotvec(self.hrp4.getBodyNode('body' ).getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())
 
         # feet poses (orientation and position)
         l_foot_transform = self.lsole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
@@ -211,7 +198,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         # velocities
         com_velocity = self.hrp4.getCOMLinearVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
         torso_angular_velocity = self.hrp4.getBodyNode('torso').getAngularVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
-        base_angular_velocity = self.hrp4.getBodyNode('base_link').getAngularVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())                       # changed from body to base_link
+        base_angular_velocity = self.hrp4.getBodyNode('body').getAngularVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
         l_foot_spatial_velocity = self.lsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
         r_foot_spatial_velocity = self.rsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
 
@@ -267,7 +254,7 @@ if __name__ == "__main__":
 
     urdfParser = dart.utils.DartLoader()
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    hrp4   = urdfParser.parseSkeleton(os.path.join(current_dir, "urdf", "nao.urdf"))            # changed "hrp4.urdf" to "nao.urdf"
+    hrp4   = urdfParser.parseSkeleton(os.path.join(current_dir, "urdf", "hrp4.urdf"))
     ground = urdfParser.parseSkeleton(os.path.join(current_dir, "urdf", "ground.urdf"))
     world.addSkeleton(hrp4)
     world.addSkeleton(ground)
