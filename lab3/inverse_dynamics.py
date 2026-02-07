@@ -35,7 +35,7 @@ class InverseDynamics:
         lsole = self.robot.getBodyNode('l_sole')
         rsole = self.robot.getBodyNode('r_sole')
         torso = self.robot.getBodyNode('torso')
-        base  = self.robot.getBodyNode('body')
+        base  = self.robot.getBodyNode('base_link')                     #changed from body to base_link
 
         # weights and gains
         tasks = ['lfoot', 'rfoot', 'com', 'torso', 'base', 'joints']

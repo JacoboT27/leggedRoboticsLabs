@@ -33,7 +33,7 @@ class FootstepPlanner:
                     unicycle_pos += R @ vref[j][:2] * params['world_time_step']
 
             # compute step position
-            displacement = 0.1 if support_foot == 'lfoot' else - 0.1
+            displacement = 0.045 if support_foot == 'lfoot' else - 0.045        #changed from 0.1 to 0.045
             displ_x = - np.sin(unicycle_theta) * displacement
             displ_y =   np.cos(unicycle_theta) * displacement
             pos = np.array((
