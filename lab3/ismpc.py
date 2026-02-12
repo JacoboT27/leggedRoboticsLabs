@@ -28,7 +28,7 @@ class Ismpc:
     # optimization problem
     self.opt = cs.Opti('conic')
     p_opts = {"expand": True}
-    s_opts = {"max_iter": 1000, "verbose": False}
+    s_opts = {"max_iter": 500000, "verbose": False}
     self.opt.solver("osqp", p_opts, s_opts)
 
     self.U = self.opt.variable(3, self.N)
@@ -43,9 +43,9 @@ class Ismpc:
       self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i]))
 
     cost = cs.sumsqr(self.U) + \
-           100 * cs.sumsqr(self.X[2, 1:].T - self.zmp_x_mid_param) + \
-           100 * cs.sumsqr(self.X[5, 1:].T - self.zmp_y_mid_param) + \
-           100 * cs.sumsqr(self.X[8, 1:].T - self.zmp_z_mid_param)
+       100 * cs.sumsqr(self.X[2, 1:].T - self.zmp_x_mid_param) + \
+       100 * cs.sumsqr(self.X[5, 1:].T - self.zmp_y_mid_param) + \
+       1000 * cs.sumsqr(self.X[6, 1:].T - self.h)
 
     self.opt.minimize(cost)
 
@@ -61,12 +61,15 @@ class Ismpc:
     self.opt.subject_to(self.X[:, 0] == self.x0_param)
 
     # stability constraint with periodic tail
-    self.opt.subject_to(self.X[1, 0     ] + self.eta * (self.X[0, 0     ] - self.X[2, 0     ]) == \
-                        self.X[1, self.N] + self.eta * (self.X[0, self.N] - self.X[2, self.N]))
-    self.opt.subject_to(self.X[4, 0     ] + self.eta * (self.X[3, 0     ] - self.X[5, 0     ]) == \
-                        self.X[4, self.N] + self.eta * (self.X[3, self.N] - self.X[5, self.N]))
-    self.opt.subject_to(self.X[7, 0     ] + self.eta * (self.X[6, 0     ] - self.X[8, 0     ]) == \
-                        self.X[7, self.N] + self.eta * (self.X[6, self.N] - self.X[8, self.N]))
+    self.opt.subject_to(self.X[1, self.N] + self.eta * (self.X[0, self.N] - self.X[2, self.N]) == 0)
+    self.opt.subject_to(self.X[4, self.N] + self.eta * (self.X[3, self.N] - self.X[5, self.N]) == 0)
+
+    #self.opt.subject_to(self.X[1, 0     ] + self.eta * (self.X[0, 0     ] - self.X[2, 0     ]) == \
+     #                   self.X[1, self.N] + self.eta * (self.X[0, self.N] - self.X[2, self.N]))
+    #self.opt.subject_to(self.X[4, 0     ] + self.eta * (self.X[3, 0     ] - self.X[5, 0     ]) == \
+     #                   self.X[4, self.N] + self.eta * (self.X[3, self.N] - self.X[5, self.N]))
+    #self.opt.subject_to(self.X[7, 0     ] + self.eta * (self.X[6, 0     ] - self.X[8, 0     ]) == \
+     #                   self.X[7, self.N] + self.eta * (self.X[6, self.N] - self.X[8, self.N]))
 
     # state
     self.x = np.zeros(9)
