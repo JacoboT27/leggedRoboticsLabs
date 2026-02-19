@@ -18,15 +18,15 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         self.time = 0
         self.params = {
             'g': 9.81,
-            'h': 0.31,                                       #changed from 0.72 0.31
-            'foot_size': 0.08,                              #changed from 0.1 to 0.08
-            'step_height': 0.02,                            
-            'ss_duration': 70,                             
-            'ds_duration': 30,                             
+            'h': 0.27,
+            'foot_size': 0.09,     
+            'step_height': 0.02,   
+            'ss_duration': 70,    
+            'ds_duration': 50,    
             'world_time_step': world.getTimeStep(),
             'first_swing': 'rfoot',
             'µ': 0.5,
-            'N': 150,
+            'N': 60,               
             'dof': self.hrp4.getNumDofs(),
         }
         self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
@@ -106,7 +106,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             print("  ✓ Feet are on ground")
         print("="*60)
         print("Establishing ground contact...")
-        for i in range(18):
+        for i in range(13):
             for j in range(6, self.hrp4.getNumDofs()):
                 dof = self.hrp4.getDof(j)
                 joint_name = dof.getName()
@@ -130,9 +130,6 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         self.initial = self.retrieve_state()
         self.contact = 'lfoot' if self.params['first_swing'] == 'rfoot' else 'rfoot'
         self.desired = copy.deepcopy(self.initial)
-        
-        # Update h with settled COM height
-        self.params['h'] = self.initial['com']['pos'][2]
         self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
         
         force_final = np.zeros(3)
@@ -165,7 +162,8 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         self.id = id.InverseDynamics(self.hrp4, redundant_dofs, foot_size=self.params['foot_size'])
 
         # initialize footstep planner
-        reference = [(0.05, 0.0, 0.0)] * 25         #changed reference velocity to 0 from 0.05
+        # Start with zero velocity to let robot stabilize, then can increase later
+        reference = [(0.05, 0.0, 0.0)] * 25 
         self.footstep_planner = footstep_planner.FootstepPlanner(
             reference,
             self.initial['lfoot']['pos'],
@@ -264,13 +262,21 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
 
         # keep COM height constant (MPC is 2D)
         self.desired['com']['pos'] = np.array([lip_state['com']['pos'][0], lip_state['com']['pos'][1], self.params['h']])
-        #self.desired['com']['vel'] = np.array([lip_state['com']['vel'][0], lip_state['com']['vel'][1], 0.0])
-        #self.desired['com']['acc'] = np.array([lip_state['com']['acc'][0], lip_state['com']['acc'][1], 0.0])
+        self.desired['com']['vel'] = np.array([lip_state['com']['vel'][0], lip_state['com']['vel'][1], 0.0])
+        self.desired['com']['acc'] = np.array([lip_state['com']['acc'][0], lip_state['com']['acc'][1], 0.0])
 
         print(f"Desired COM Pos: {self.desired['com']['pos']}")
         print(f"Desired COM Vel: {self.desired['com']['vel']}")
         print(f"Desired COM Acc: {self.desired['com']['acc']}")
         print(f"Contact: {contact}")
+        com_y_error = self.desired['com']['pos'][1] - self.current['com']['pos'][1]
+        com_y_vel = self.current['com']['vel'][1]
+        base_roll = self.current['base']['pos'][0]  # Roll angle (lateral tilt)
+        print(f"LATERAL: COM_Y_error={com_y_error:.4f}m, COM_Y_vel={com_y_vel:.4f}m/s, base_roll={base_roll:.4f}rad")
+        if abs(com_y_vel) > 0.3:
+            print(f"  ⚠️ HIGH LATERAL VELOCITY! Risk of oscillation")
+        if abs(base_roll) > 0.15:
+            print(f"  ⚠️ HIGH LATERAL TILT! Robot tipping sideways")
         print("="*60)
 
         # get foot trajectories
@@ -278,6 +284,41 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         for foot in ['lfoot', 'rfoot']:
             for key in ['pos', 'vel', 'acc']:
                 self.desired[foot][key] = feet_trajectories[foot][key]
+
+        if contact == 'lfoot' or contact == 'ds':
+            # Force left foot completely to ground
+            self.desired['lfoot']['pos'][5] = 0.0  # Z position
+            self.desired['lfoot']['vel'][2] = 0.0  # Z velocity
+            self.desired['lfoot']['vel'][5] = 0.0  # rotational Z velocity
+            self.desired['lfoot']['acc'][2] = 0.0  # Z acceleration
+            self.desired['lfoot']['acc'][5] = 0.0  # rotational Z acceleration
+        
+        if contact == 'rfoot' or contact == 'ds':
+            # Force right foot completely to ground
+            self.desired['rfoot']['pos'][5] = 0.0
+            self.desired['rfoot']['vel'][2] = 0.0
+            self.desired['rfoot']['vel'][5] = 0.0
+            self.desired['rfoot']['acc'][5] = 0.0
+            self.desired['rfoot']['acc'][2] = 0.0
+        
+        # VERIFICATION - will crash if ground forcing failed
+        actual_lfoot_z = self.lsole.getWorldTransform().translation()[2]
+        actual_rfoot_z = self.rsole.getWorldTransform().translation()[2]
+        
+        if contact in ['lfoot', 'ds']:
+            if self.desired['lfoot']['pos'][5] != 0.0:
+                print(f"❌ ERROR: Ground forcing FAILED for lfoot!")
+                print(f"   Desired Z should be 0.0, but is {self.desired['lfoot']['pos'][5]}")
+                exit(1)
+                
+        if contact in ['rfoot', 'ds']:
+            if self.desired['rfoot']['pos'][5] != 0.0:
+                print(f"❌ ERROR: Ground forcing FAILED for rfoot!")
+                print(f"   Desired Z should be 0.0, but is {self.desired['rfoot']['pos'][5]}")
+                exit(1)
+        
+        # Print actual foot heights
+        print(f"  Stance foot: contact={contact}, L_Z={actual_lfoot_z:.6f}, R_Z={actual_rfoot_z:.6f}")
 
         # set torso and base references to the average of the feet
         for link in ['torso', 'base']:
@@ -319,6 +360,15 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         l_foot_spatial_velocity = self.lsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
         r_foot_spatial_velocity = self.rsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
 
+        contact_plan = self.planned_contact_at_time(self.time)
+        midpoint = 0.5 * (l_foot_position + r_foot_position)
+        if contact_plan == 'lfoot':
+            center = l_foot_position
+        elif contact_plan == 'rfoot':
+            center = r_foot_position
+        else:  # ds
+            center = midpoint
+
         # compute total contact force
         force = np.zeros(3)
         for contact in self.world.getLastCollisionResult().getContacts():
@@ -338,8 +388,8 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         else:
             zmp = midpoint.copy()                                           # No contact - use midpoint
             zmp[2] = 0.0                                                    #always on the ground
-        zmp[0] = np.clip(zmp[0], midpoint[0] - self.params['foot_size']/2, midpoint[0] + self.params['foot_size']/2)
-        zmp[1] = np.clip(zmp[1], midpoint[1] - self.params['foot_size']/2, midpoint[1] + self.params['foot_size']/2)
+        zmp[0] = np.clip(zmp[0], center[0] - self.params['foot_size']/2, center[0] + self.params['foot_size']/2)
+        zmp[1] = np.clip(zmp[1], center[1] - self.params['foot_size']/2, center[1] + self.params['foot_size']/2)
         zmp[2] = np.clip(zmp[2], 0.0, 0.0)                                 #clip
         # create state dict
         return {
@@ -365,6 +415,16 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
                       'vel': np.zeros(3),
                       'acc': np.zeros(3)}
         }
+    
+    def planned_contact_at_time(self, t):
+        if not hasattr(self, "footstep_planner") or self.footstep_planner is None:
+            return 'ds'
+        phase = self.footstep_planner.get_phase_at_time(t)
+        if phase == 'ds':
+            return 'ds'
+        step_idx = self.footstep_planner.get_step_index_at_time(t)
+        swing = self.footstep_planner.plan[step_idx]['foot_id']
+        return 'rfoot' if swing == 'lfoot' else 'lfoot'
 
 if __name__ == "__main__":
     world = dart.simulation.World()
@@ -374,7 +434,7 @@ if __name__ == "__main__":
     hrp4   = urdfParser.parseSkeleton(os.path.join(current_dir, "urdf", "nao.urdf"))            #changed hrp4.urdf to nao.urdf
     ground = urdfParser.parseSkeleton(os.path.join(current_dir, "urdf", "ground.urdf"))
     world.addSkeleton(hrp4)
-    target_mass = 5.3                                               # Correct mass for Nao (kg)
+    target_mass = 5.325402                                          # Correct mass for Nao (kg)
     current_mass = hrp4.getMass()                                   # Current mass
     if current_mass > 6.0:                                          # Only fix if it's crazily heavy
         print(f"⚠️ DETECTED MASS ANOMALY: {current_mass:.2f} kg (Should be ~5.3 kg)")
@@ -433,9 +493,7 @@ if __name__ == "__main__":
     node.setTargetRealTimeFactor(10) # speed up the visualization by 10x
     viewer.addWorldNode(node)
 
-    #viewer.setUpViewInWindow(0, 0, 1920, 1080)
     viewer.setUpViewInWindow(0, 0, 1280, 720)
-    #viewer.setUpViewInWindow(0, 0, 640, 480)
     viewer.setCameraHomePosition([5., -1., 1.5],
                                  [1.,  0., 0.5],
                                  [0.,  0., 1. ])

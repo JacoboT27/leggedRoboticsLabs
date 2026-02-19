@@ -28,7 +28,7 @@ class Ismpc:
     # optimization problem
     self.opt = cs.Opti('conic')
     p_opts = {"expand": True}
-    s_opts = {"max_iter": 500000, "verbose": False}
+    s_opts = {"max_iter": 1000, "verbose": False, "scaled_termination": True, "polish": True, "eps_rel": 1e-3, "eps_abs": 1e-3}
     self.opt.solver("osqp", p_opts, s_opts)
 
     self.U = self.opt.variable(3, self.N)
@@ -43,9 +43,9 @@ class Ismpc:
       self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i]))
 
     cost = cs.sumsqr(self.U) + \
-       100 * cs.sumsqr(self.X[2, 1:].T - self.zmp_x_mid_param) + \
-       100 * cs.sumsqr(self.X[5, 1:].T - self.zmp_y_mid_param) + \
-       1000 * cs.sumsqr(self.X[6, 1:].T - self.h)
+           100 * cs.sumsqr(self.X[2, 1:].T - self.zmp_x_mid_param) + \
+           100 * cs.sumsqr(self.X[5, 1:].T - self.zmp_y_mid_param) + \
+           100 * cs.sumsqr(self.X[8, 1:].T - self.zmp_z_mid_param)
 
     self.opt.minimize(cost)
 
@@ -61,15 +61,12 @@ class Ismpc:
     self.opt.subject_to(self.X[:, 0] == self.x0_param)
 
     # stability constraint with periodic tail
-    self.opt.subject_to(self.X[1, self.N] + self.eta * (self.X[0, self.N] - self.X[2, self.N]) == 0)
-    self.opt.subject_to(self.X[4, self.N] + self.eta * (self.X[3, self.N] - self.X[5, self.N]) == 0)
-
-    #self.opt.subject_to(self.X[1, 0     ] + self.eta * (self.X[0, 0     ] - self.X[2, 0     ]) == \
-     #                   self.X[1, self.N] + self.eta * (self.X[0, self.N] - self.X[2, self.N]))
-    #self.opt.subject_to(self.X[4, 0     ] + self.eta * (self.X[3, 0     ] - self.X[5, 0     ]) == \
-     #                   self.X[4, self.N] + self.eta * (self.X[3, self.N] - self.X[5, self.N]))
-    #self.opt.subject_to(self.X[7, 0     ] + self.eta * (self.X[6, 0     ] - self.X[8, 0     ]) == \
-     #                   self.X[7, self.N] + self.eta * (self.X[6, self.N] - self.X[8, self.N]))
+    self.opt.subject_to(self.X[1, 0     ] + self.eta * (self.X[0, 0     ] - self.X[2, 0     ]) == \
+                        self.X[1, self.N] + self.eta * (self.X[0, self.N] - self.X[2, self.N]))
+    self.opt.subject_to(self.X[4, 0     ] + self.eta * (self.X[3, 0     ] - self.X[5, 0     ]) == \
+                        self.X[4, self.N] + self.eta * (self.X[3, self.N] - self.X[5, self.N]))
+    self.opt.subject_to(self.X[7, 0     ] + self.eta * (self.X[6, 0     ] - self.X[8, 0     ]) == \
+                        self.X[7, self.N] + self.eta * (self.X[6, self.N] - self.X[8, self.N]))
 
     # state
     self.x = np.zeros(9)
@@ -89,7 +86,33 @@ class Ismpc:
     self.opt.set_value(self.zmp_y_mid_param, mc_y)
     self.opt.set_value(self.zmp_z_mid_param, mc_z)
 
-    sol = self.opt.solve()
+    # DEBUG: Print constraint info before solving
+    print(f"\n[DEBUG t={t}] MPC Debug Info:")
+    print(f"  Current COM pos: {self.x[0:3]}")
+    print(f"  Current COM vel: {self.x[1::3]}")
+    print(f"  Current ZMP pos: {self.x[2::3]}")
+    print(f"  MC bounds X: [{np.min(mc_x):.4f}, {np.max(mc_x):.4f}]")
+    print(f"  MC bounds Y: [{np.min(mc_y):.4f}, {np.max(mc_y):.4f}]")
+    print(f"  MC bounds Z: [{np.min(mc_z):.4f}, {np.max(mc_z):.4f}]")
+    print(f"  ZMP constraint width: {self.foot_size:.4f}")
+    phase = self.footstep_planner.get_phase_at_time(t)
+    step_idx = self.footstep_planner.get_step_index_at_time(t)
+    print(f"  Phase: {phase}, Step index: {step_idx}")
+
+    try:
+      sol = self.opt.solve()
+    except Exception as e:
+      print(f"\n[ERROR] MPC solve failed at t={t}!")
+      print(f"  Error message: {str(e)}")
+      # Try with relaxed tolerances
+      print(f"  Attempting solve with relaxed tolerances...")
+      try:
+        self.opt.solver.set_option("eps_rel", 1e-2)
+        self.opt.solver.set_option("eps_abs", 1e-2)
+        sol = self.opt.solve()
+        print(f"  Success with relaxed tolerances!")
+      except:
+        raise e
     self.x = sol.value(self.X[:,1])
     self.u = sol.value(self.U[:,0])
 
@@ -110,16 +133,40 @@ class Ismpc:
     return self.lip_state, contact
   
   def generate_moving_constraint(self, t):
+    """Generate the moving constraint (midpoint between feet) for the MPC horizon.
+    
+    During double support: ZMP should be at the midpoint between current and next support feet
+    During single support: ZMP should be at the support foot
+    """
     mc_x = np.full(self.N, (self.initial['lfoot']['pos'][3] + self.initial['rfoot']['pos'][3]) / 2.)
     mc_y = np.full(self.N, (self.initial['lfoot']['pos'][4] + self.initial['rfoot']['pos'][4]) / 2.)
     time_array = np.array(range(t, t + self.N))
-    for j in range(len(self.footstep_planner.plan) - 1):
-      fs_start_time = self.footstep_planner.get_start_time(j)
-      ds_start_time = fs_start_time + self.footstep_planner.plan[j]['ss_duration']
-      fs_end_time = ds_start_time + self.footstep_planner.plan[j]['ds_duration']
-      fs_current_pos = self.footstep_planner.plan[j]['pos'] if j > 0 else np.array([mc_x[0], mc_y[0]])
-      fs_target_pos = self.footstep_planner.plan[j + 1]['pos']
-      mc_x += self.sigma(time_array, ds_start_time, fs_end_time) * (fs_target_pos[0] - fs_current_pos[0])
-      mc_y += self.sigma(time_array, ds_start_time, fs_end_time) * (fs_target_pos[1] - fs_current_pos[1])
+    
+    # For each time step in the horizon
+    for k in range(self.N):
+      time_k = t + k
+      step_idx = self.footstep_planner.get_step_index_at_time(time_k)
+      phase_k = self.footstep_planner.get_phase_at_time(time_k)
+      
+      if step_idx is None:
+        continue
+        
+      # Get current and next step positions
+      current_step = self.footstep_planner.plan[step_idx]
+      if step_idx < len(self.footstep_planner.plan) - 1:
+        next_step = self.footstep_planner.plan[step_idx + 1]
+      else:
+        next_step = current_step  # Stay at last step if beyond plan
+      
+      # During double support: interpolate between current and next support feet
+      # During single support: stay at current support foot
+      if phase_k == 'ds':
+        # Interpolate: midpoint between current and next
+        mc_x[k] = (current_step['pos'][0] + next_step['pos'][0]) / 2.0
+        mc_y[k] = (current_step['pos'][1] + next_step['pos'][1]) / 2.0
+      else:  # single support
+        # Stay at current support foot
+        mc_x[k] = current_step['pos'][0]
+        mc_y[k] = current_step['pos'][1]
 
     return mc_x, mc_y, np.zeros(self.N)

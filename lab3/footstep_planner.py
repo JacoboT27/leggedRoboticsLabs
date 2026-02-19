@@ -26,14 +26,14 @@ class FootstepPlanner:
 
             # move virtual unicycle
             for i in range(ss_duration + ds_duration):
-                if j > 1:
+                if j >= 1:  # FIXED: Changed from j > 1 to j >= 1
                     unicycle_theta += vref[j][2] * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
                                   [np.sin(unicycle_theta),   np.cos(unicycle_theta)]])
                     unicycle_pos += R @ vref[j][:2] * params['world_time_step']
 
             # compute step position
-            displacement = 0.045 if support_foot == 'lfoot' else - 0.045        #changed from 0.1 to 0.045
+            displacement = 0.045 if support_foot == 'lfoot' else - 0.045
             displ_x = - np.sin(unicycle_theta) * displacement
             displ_y =   np.cos(unicycle_theta) * displacement
             pos = np.array((

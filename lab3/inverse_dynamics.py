@@ -3,12 +3,12 @@ import numpy as np
 from utils import *
 
 class InverseDynamics:
-    def __init__(self, robot, redundant_dofs, foot_size=0.1, µ=0.5):
+    def __init__(self, robot, redundant_dofs, foot_size=0.08, µ=0.5):
         self.robot = robot
         self.dofs = self.robot.getNumDofs()
         self.d = foot_size / 2.
         self.µ = µ
-
+        #print(self.robot.getMassMatrix())
         # define sizes for QP solver
         self.num_contacts = 2
         self.num_contact_dims = self.num_contacts * 6
@@ -35,22 +35,44 @@ class InverseDynamics:
         lsole = self.robot.getBodyNode('l_sole')
         rsole = self.robot.getBodyNode('r_sole')
         torso = self.robot.getBodyNode('torso')
-        base  = self.robot.getBodyNode('base_link')                     #changed from body to base_link
+        base  = self.robot.getBodyNode('base_link')
 
         # weights and gains
+
         tasks = ['lfoot', 'rfoot', 'com', 'torso', 'base', 'joints']
 
-        weights   = {'lfoot': 30., 'rfoot': 30., 'com': 200., 'torso': 30., 'base': 50., 'joints': 1e-2}            #these make a robot take a small step and fall
-        pos_gains = {'lfoot': 100., 'rfoot': 100., 'com': 1000., 'torso': 50., 'base': 3., 'joints': 1.}
-        vel_gains = {'lfoot': 40., 'rfoot': 40., 'com': 100., 'torso': 40., 'base': 20., 'joints': 1.0}
+        tasks = ['lfoot', 'rfoot', 'com', 'torso', 'base', 'joints']
 
-        weights   = {'lfoot': 100., 'rfoot': 100., 'com': 100., 'torso': 100., 'base': 100., 'joints': 1}           #these make the robot crouch then take a small step jumping, then fall
-        pos_gains = {'lfoot': 100., 'rfoot': 100., 'com': 1000., 'torso': 50., 'base': 3., 'joints': 1.}
+        weights = {
+            'lfoot': 1.0,
+            'rfoot': 1.0,
+            'com'  : 3.0,
+            'torso': 0.5,
+            'base' : 0.0,     # important: don't fight torso / don't trust base
+            'joints': 1e-3
+        }
 
-        weights   = {'lfoot': 100., 'rfoot': 100., 'com': 100., 'torso': 100., 'base': 100., 'joints': 1}           #these make the robot crouch then take 2 small steps, then fall
-        pos_gains = {'lfoot': 100., 'rfoot': 100., 'com': 800., 'torso': 50., 'base': 3., 'joints': 1.}
-     
-        # jacobians
+        pos_gains = {
+            'lfoot': 60.0,
+            'rfoot': 60.0,
+            'com'  : 25.0,
+            'torso': 30.0,
+            'base' : 0.0,
+            'joints': 3.0
+        }
+
+        vel_gains = {
+            'lfoot': 12.0,
+            'rfoot': 12.0,
+            'com'  : 18.0,    # damping to kill overshoot/drift
+            'torso': 10.0,
+            'base' : 0.0,
+            'joints': 0.5
+        }
+
+                
+        # Increase the COM velocity (damping) gain from 10 to 20 to stop the overshoot!
+        vel_gains = {'lfoot': 10., 'rfoot': 10., 'com': 20., 'torso': 10., 'base': 10., 'joints': 1.}# jacobians
         J = {'lfoot' : self.robot.getJacobian(lsole,        inCoordinatesOf=dart.dynamics.Frame.World()),
              'rfoot' : self.robot.getJacobian(rsole,        inCoordinatesOf=dart.dynamics.Frame.World()),
              'com'   : self.robot.getCOMLinearJacobian(     inCoordinatesOf=dart.dynamics.Frame.World()),
@@ -134,4 +156,6 @@ class InverseDynamics:
         self.qp_solver.set_values(H, F, A_eq, b_eq, A_ineq, b_ineq)
         solution = self.qp_solver.solve()
         tau = solution[tau_indices]
+
+        
         return tau[6:]
