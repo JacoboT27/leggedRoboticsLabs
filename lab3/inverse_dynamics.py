@@ -49,16 +49,16 @@ class InverseDynamics:
             'com'  : 3.0,
             'torso': 0.5,
             'base' : 0.0,     # important: don't fight torso / don't trust base
-            'joints': 1e-3
+            'joints': 0.5
         }
 
         pos_gains = {
-            'lfoot': 60.0,
-            'rfoot': 60.0,
+            'lfoot': 30.0,
+            'rfoot': 30.0,
             'com'  : 25.0,
             'torso': 30.0,
             'base' : 0.0,
-            'joints': 3.0
+            'joints': 10.0
         }
 
         vel_gains = {
@@ -67,7 +67,7 @@ class InverseDynamics:
             'com'  : 18.0,    # damping to kill overshoot/drift
             'torso': 10.0,
             'base' : 0.0,
-            'joints': 0.5
+            'joints': 10.0
         }
 
                 

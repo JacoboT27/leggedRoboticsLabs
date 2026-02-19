@@ -172,8 +172,8 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             'g': 9.81,
             'h': 0.26,            # This will be dynamically overwritten below
             'foot_size': 0.06,    # 0.10 gives the MPC sliding box the 1cm grease it needs
-            'step_height': 0.02,  # 2cm clearance for flat ground [cite: 23]
-            'ss_duration': 40,
+            'step_height': 0.03,  # 2cm clearance for flat ground [cite: 23]
+            'ss_duration': 90,
             'ds_duration': 60,
             'world_time_step': world.getTimeStep(),
             'first_swing': 'rfoot',
