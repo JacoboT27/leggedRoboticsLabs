@@ -154,6 +154,70 @@ def plot_controlled_results(node, label="run", save_dir=None):
     if save_dir is not None:
         fig2.savefig(os.path.join(save_dir, "dcm_contact_vs_time.png"), dpi=200)
 
+    # =====================================================
+    # FIGURE 3 — CoM, DCM, Contact vs Time (Z direction)
+    # =====================================================
+    eta = float(node.params["eta"])   # sqrt(g/h)
+    com_z = com[:, 2]
+    dcm_z = com_z + com_vel[:, 2] / eta
+
+    lfoot_z = lfoot[:, 5]
+    rfoot_z = rfoot[:, 5]
+    contact_z = np.zeros(T)
+
+    if hasattr(node, "footstep_planner"):
+        for k in range(T):
+            step_idx = node.footstep_planner.get_step_index_at_time(k)
+            if step_idx is not None:
+                phase = node.footstep_planner.get_phase_at_time(k)
+                if phase == "ss" and hasattr(node.footstep_planner, "plan"):
+                    step_idx = int(step_idx)
+                    # clamp index just in case
+                    step_idx = max(0, min(step_idx, len(node.footstep_planner.plan) - 1))
+                    support = node.footstep_planner.plan[step_idx]["foot_id"]
+                    contact_z[k] = lfoot_z[k] if support == "lfoot" else rfoot_z[k]
+                else:
+                    contact_z[k] = 0.5 * (lfoot_z[k] + rfoot_z[k])
+            else:
+                contact_z[k] = 0.5 * (lfoot_z[k] + rfoot_z[k])
+    else:
+        contact_z = 0.5 * (lfoot_z + rfoot_z)
+
+    fig3, ax3 = plt.subplots(figsize=(10, 6), constrained_layout=True)
+    ax3.plot(t, com_z, linewidth=2, label="CoM")
+    ax3.plot(t, dcm_z, linewidth=2, label="DCM")
+    ax3.plot(t, contact_z, linewidth=2, label="Contact")
+    ax3.axhline(y=node.params['h'], color='r', linestyle='--', linewidth=2, label="Desired Height")
+
+    ax3.set_title("CoM, DCM, and Contact Point vs. Time (Z Direction)", fontsize=18)
+    ax3.set_xlabel("Time (s)", fontsize=15)
+    ax3.set_ylabel("Z Position (m)", fontsize=15)
+    ax3.grid(True)
+    ax3.tick_params(labelsize=13)
+    ax3.legend(loc="best", fontsize=12)
+
+    if save_dir is not None:
+        fig3.savefig(os.path.join(save_dir, "dcm_contact_vs_time_z.png"), dpi=200)
+
+    # =====================================================
+    # FIGURE 4 — Error between CoM and ZMP in XY plane vs time
+    # =====================================================
+    zmp = np.array(log[('current', 'zmp', 'pos')])
+    error_xy = np.sqrt((com[:, 0] - zmp[:, 0])**2 + (com[:, 1] - zmp[:, 1])**2)
+
+    fig4, ax4 = plt.subplots(figsize=(10, 6), constrained_layout=True)
+    ax4.plot(t, error_xy, linewidth=2, label="CoM-ZMP Error")
+
+    ax4.set_title("CoM-ZMP Error in XY Plane vs. Time", fontsize=18)
+    ax4.set_xlabel("Time (s)", fontsize=15)
+    ax4.set_ylabel("Error (m)", fontsize=15)
+    ax4.grid(True)
+    ax4.tick_params(labelsize=13)
+    ax4.legend(loc="best", fontsize=12)
+
+    if save_dir is not None:
+        fig4.savefig(os.path.join(save_dir, "com_zmp_error_xy.png"), dpi=200)
+
     # -----------------------------
     # Keep plots open
     # -----------------------------
@@ -204,7 +268,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             'LHipYawPitch': 0., 'LHipRoll': 3., 'LHipPitch': -25., 'LKneePitch': 50., 'LAnklePitch': -25., 'LAnkleRoll': -3.,
             'RHipYawPitch': 0., 'RHipRoll': -3., 'RHipPitch': -25., 'RKneePitch': 50., 'RAnklePitch': -25., 'RAnkleRoll': 3.,
             # Arms down by the side is perfectly fine to keep!
-            'LShoulderPitch': 80., 'LShoulderRoll': 8., 'LElbowYaw': 0., 'LElbowRoll': -25.,
+            'LShoulderPitch': 80., 'LShoulderRoll': 8., 'LElbowYaw': 0., 'LElbowRoll': 25.,
             'RShoulderPitch': 80., 'RShoulderRoll': -8., 'RElbowYaw': 0., 'RElbowRoll': -25.
         }
         for joint_name, value in initial_configuration.items():
@@ -243,7 +307,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
 
         # initialize footstep planner
         # Step forward 4cm at a time, keeping feet apart laterally
-        reference = [(0.04, 0.0, 0.0)] * 30
+        reference = [(0.04, 0.0, 0.0)] * 70
 
         self.footstep_planner = footstep_planner.FootstepPlanner(
             reference,
@@ -354,10 +418,6 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         # set acceleration commands
         for i in range(self.params['dof'] - 6):
             self.hrp4.setCommand(i + 6, commands[i])
-
-        # log and plot
-        self.logger.log_data(self.current, self.desired)
-        #self.logger.update_plot(self.time)
 
         self.time += 1
 

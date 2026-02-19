@@ -38,41 +38,11 @@ class InverseDynamics:
         base  = self.robot.getBodyNode('base_link')
 
         # weights and gains
-
         tasks = ['lfoot', 'rfoot', 'com', 'torso', 'base', 'joints']
-
-        tasks = ['lfoot', 'rfoot', 'com', 'torso', 'base', 'joints']
-
-        weights = {
-            'lfoot': 1.0,
-            'rfoot': 1.0,
-            'com'  : 3.0,
-            'torso': 0.5,
-            'base' : 0.0,     # important: don't fight torso / don't trust base
-            'joints': 0.5
-        }
-
-        pos_gains = {
-            'lfoot': 30.0,
-            'rfoot': 30.0,
-            'com'  : 25.0,
-            'torso': 30.0,
-            'base' : 0.0,
-            'joints': 10.0
-        }
-
-        vel_gains = {
-            'lfoot': 12.0,
-            'rfoot': 12.0,
-            'com'  : 18.0,    # damping to kill overshoot/drift
-            'torso': 10.0,
-            'base' : 0.0,
-            'joints': 10.0
-        }
-
-                
-        # Increase the COM velocity (damping) gain from 10 to 20 to stop the overshoot!
-        vel_gains = {'lfoot': 10., 'rfoot': 10., 'com': 20., 'torso': 10., 'base': 10., 'joints': 1.}# jacobians
+        weights = {'lfoot': 1.0, 'rfoot': 1.0, 'com'  : 3.0, 'torso': 0.5, 'base' : 0.0, 'joints': 0.5}
+        pos_gains = {'lfoot': 30.0, 'rfoot': 30.0, 'com'  : 25.0, 'torso': 30.0, 'base' : 0.0, 'joints': 10.0}
+        vel_gains = {'lfoot': 10., 'rfoot': 10., 'com': 20., 'torso': 10., 'base': 10., 'joints': 1.}
+        # jacobians
         J = {'lfoot' : self.robot.getJacobian(lsole,        inCoordinatesOf=dart.dynamics.Frame.World()),
              'rfoot' : self.robot.getJacobian(rsole,        inCoordinatesOf=dart.dynamics.Frame.World()),
              'com'   : self.robot.getCOMLinearJacobian(     inCoordinatesOf=dart.dynamics.Frame.World()),
