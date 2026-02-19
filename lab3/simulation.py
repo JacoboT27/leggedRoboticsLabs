@@ -186,7 +186,6 @@ def plot_controlled_results(node, label="run", save_dir=None):
     fig3, ax3 = plt.subplots(figsize=(10, 6), constrained_layout=True)
     ax3.plot(t, com_z, linewidth=2, label="CoM")
     ax3.plot(t, dcm_z, linewidth=2, label="DCM")
-    ax3.plot(t, contact_z, linewidth=2, label="Contact")
     ax3.axhline(y=node.params['h'], color='r', linestyle='--', linewidth=2, label="Desired Height")
 
     ax3.set_title("CoM, DCM, and Contact Point vs. Time (Z Direction)", fontsize=18)

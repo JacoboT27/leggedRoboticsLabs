@@ -26,7 +26,7 @@ class FootstepPlanner:
 
             # move virtual unicycle
             for i in range(ss_duration + ds_duration):
-                if j >= 1:  # FIXED: Changed from j > 1 to j >= 1
+                if j > 1:  # FIXED: Changed from j > 1 to j >= 1
                     unicycle_theta += vref[j][2] * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
                                   [np.sin(unicycle_theta),   np.cos(unicycle_theta)]])
